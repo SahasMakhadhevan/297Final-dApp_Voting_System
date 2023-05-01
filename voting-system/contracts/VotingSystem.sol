@@ -16,6 +16,7 @@ contract VotingSystem{
     address Admin; // Address of the admin
     mapping(address=>Voter) voters; // Mapping of addresses to Voter structs
     Candidate[] Candidates; // Array of Candidate structs
+    bool electionStatus = false; // Status of whether the election is open or closed
 
     // Constructor function, which initializes the contract with a list of Candidate names
     function VotingSystem(bytes32[] CandidateNames){
@@ -29,8 +30,14 @@ contract VotingSystem{
         }
     }
 
+    function setElection(bool status) public{
+        require(msg.sender == Admin, 'Only admin can set election');
+        electionStatus = status;
+    }
+
     // Function to register voter
     function registerVoter(address voter){
+        require(electionStatus == true, 'Election is not open');
         // Check that the sender is the admin or that the voter has not already voted
         if(msg.sender!=Admin | voters[voter].voted){
             throw; // if not, throw an exception
@@ -40,6 +47,7 @@ contract VotingSystem{
 
     // Function for a voter to cast a vote for a Candidate
     function vote(uint Candidate){
+        require(electionStatus == true, 'Election is not open');
         Voter sender=voters[msg.sender]; // get the Voter struct for the sender's address
         // Check that the sender has not already voted and that the Candidate index is valid
         if(sender.voted | Candidate>=Candidates.length){
@@ -52,6 +60,7 @@ contract VotingSystem{
 
     // Function to determine the winning Candidate
     function winningCandidate() constant returns(uint winningCandidate){
+        require(electionStatus == true, 'Election is not open');
         uint winningVoteCount=0; // initialize the winning vote count to 0
         for(uint p=0;p<Candidates.length;p++){ // loop through all Candidates
             if(Candidates[p].voteCount>winningVoteCount){ // if the Candidate has more votes than the current winner
@@ -59,10 +68,12 @@ contract VotingSystem{
                 winningCandidate=p; // set the winning Candidate index to the current Candidate index
             }
         }
+        electionStatus = false;
     }
 
     // Function to get the name of the winning Candidate
     function winnerName() constant returns(bytes32 winnerName){
+        require(electionStatus == false, 'Election is closed');
         winnerName=Candidates[winningCandidate()].name; // get the name of the winning Candidate using the winningCandidate function
     }
 }
